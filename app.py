@@ -4,6 +4,10 @@ import os
 
 app = Flask(__name__)
 
+# Criar a pasta static/ se não existir
+if not os.path.exists("static"):
+    os.makedirs("static")
+
 # Página principal com formulário
 @app.route('/')
 def index():
@@ -68,3 +72,4 @@ def gerar_pdf():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
