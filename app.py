@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, send_file
-from fpdf import FPDF
+from docx import Document
 import os
 
 app = Flask(__name__)
@@ -15,7 +15,7 @@ def index():
     <html>
         <body>
             <h2>Preencher Relatório</h2>
-            <form action="/gerar_pdf" method="post">
+            <form action="/gerar_word" method="post">
                 Data: <input type="text" name="data"><br>
                 Indicativo: <input type="text" name="indicativo"><br>
                 Turno: <input type="text" name="turno"><br>
@@ -32,44 +32,46 @@ def index():
     </html>
     '''
 
-# Geração do relatório em PDF
-@app.route('/gerar_pdf', methods=['POST'])
-def gerar_pdf():
+# Geração do relatório em Word
+@app.route('/gerar_word', methods=['POST'])
+def gerar_word():
     # Capturar dados do formulário
-    data = request.form['data']
-    indicativo = request.form['indicativo']
-    turno = request.form['turno']
-    chefe_nome = request.form['chefe_nome']
-    chefe_posto = request.form['chefe_posto']
-    condutor_nome = request.form['condutor_nome']
-    condutor_posto = request.form['condutor_posto']
-    viatura_matricula = request.form['viatura_matricula']
-    viatura_modelo = request.form['viatura_modelo']
-    ocorrencias = request.form['ocorrencias']
+    modelo_path = "static/modelo_relatorio.docx"  # Caminho do modelo base
+    novo_doc_path = "static/Relatorio_Preenchido.docx"
     
-    # Criar o PDF
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    if not os.path.exists(modelo_path):
+        return "Erro: O modelo de relatório Word não foi encontrado."
     
-    pdf.cell(200, 10, "RELATÓRIO DO CARRO PATRULHA", ln=True, align='C')
-    pdf.ln(10)
-    pdf.cell(200, 10, f"Data: {data}   Indicativo: {indicativo}    Turno: {turno}", ln=True)
-    pdf.ln(5)
-    pdf.cell(200, 10, f"Chefe de Viatura: {chefe_posto} {chefe_nome}", ln=True)
-    pdf.cell(200, 10, f"Condutor: {condutor_posto} {condutor_nome}", ln=True)
-    pdf.cell(200, 10, f"Viatura: {viatura_matricula} - {viatura_modelo}", ln=True)
-    pdf.ln(10)
-    pdf.cell(200, 10, "RESUMO DAS OCORRÊNCIAS", ln=True, align='C')
-    pdf.multi_cell(0, 10, ocorrencias)
+    doc = Document(modelo_path)
     
-    # Guardar o PDF
-    pdf_filename = "relatorio_cp_funchal.pdf"
-    pdf_path = os.path.join("static", pdf_filename)
-    pdf.output(pdf_path)
+    dados_relatorio = {
+        "Data": request.form['data'],
+        "Indicativo": request.form['indicativo'],
+        "Turno": request.form['turno'],
+        "Chefe de Viatura": request.form['chefe_nome'],
+        "Posto Chefe": request.form['chefe_posto'],
+        "Condutor": request.form['condutor_nome'],
+        "Posto Condutor": request.form['condutor_posto'],
+        "Viatura Matrícula": request.form['viatura_matricula'],
+        "Viatura Modelo": request.form['viatura_modelo'],
+        "Ocorrências": request.form['ocorrencias']
+    }
     
-    return send_file(pdf_path, as_attachment=True)
+    for paragrafo in doc.paragraphs:
+        for chave, valor in dados_relatorio.items():
+            if chave in paragrafo.text:
+                paragrafo.text = paragrafo.text.replace(chave, valor)
+    
+    for tabela in doc.tables:
+        for linha in tabela.rows:
+            for celula in linha.cells:
+                for chave, valor in dados_relatorio.items():
+                    if chave in celula.text:
+                        celula.text = celula.text.replace(chave, valor)
+    
+    doc.save(novo_doc_path)
+    
+    return send_file(novo_doc_path, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
-
