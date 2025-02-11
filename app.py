@@ -8,6 +8,12 @@ app = Flask(__name__)
 if not os.path.exists("static"):
     os.makedirs("static")
 
+# Verificar se o modelo de relatório existe
+modelo_path = "static/modelo_relatorio.docx"
+if not os.path.exists(modelo_path):
+    with open(modelo_path, 'w') as f:
+        f.write("Este é um modelo temporário. Substitua-o pelo modelo real.")
+
 # Página principal com formulário
 @app.route('/')
 def index():
@@ -36,11 +42,10 @@ def index():
 @app.route('/gerar_word', methods=['POST'])
 def gerar_word():
     # Capturar dados do formulário
-    modelo_path = "static/modelo_relatorio.docx"  # Caminho do modelo base
     novo_doc_path = "static/Relatorio_Preenchido.docx"
     
     if not os.path.exists(modelo_path):
-        return "Erro: O modelo de relatório Word não foi encontrado."
+        return "Erro: O modelo de relatório Word não foi encontrado. Certifique-se de que o ficheiro modelo_relatorio.docx está na pasta static."
     
     doc = Document(modelo_path)
     
